@@ -23,16 +23,21 @@ import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.Instances;
 import weka.classifiers.trees.J48;
+import weka.core.SerializationHelper;
+import weka.core.Utils;
+import java.io.FileWriter;
+import java.io.IOException;
 
 public class EnsembleTraining extends Configured implements Tool {
     private static final Logger logger = LogManager.getLogger(EnsembleTraining.class);
 
+
     public static class TokenizerMapper extends Mapper<Object, Text, Text, Text> {
-        private final Text word = new Text();
 
         @Override
         public void map(final Object key, final Text value, final Context context) throws java.io.IOException, InterruptedException {
             logger.info("In MAPPER");
+            
 
             // Defining the start and the end range for generating the random number
             int start_range = 0;
@@ -44,7 +49,6 @@ public class EnsembleTraining extends Configured implements Tool {
             // Assigning the random number to the key variable
             int key1 = random.nextInt(end_range - start_range + 1) + start_range;
 
-
             // For each datapoint, we assign the random number generated above as the key so that the input data goes to the same reducer
             // Emitting the key and the value in which values is the entire row that includes features and label
             context.write(new Text(String.valueOf(key1)), value);
@@ -54,6 +58,7 @@ public class EnsembleTraining extends Configured implements Tool {
 
     public static class IntSumReducer extends Reducer<Text, Text, Text, Text> {
         private final static IntWritable one = new IntWritable(1);
+        private static final String INTERMEDIATE_PATH = "intermediate_model_output";
 
         @Override
         public void reduce(final Text key, final Iterable<Text> values, final Context context) throws java.io.IOException, InterruptedException {
@@ -123,14 +128,39 @@ public class EnsembleTraining extends Configured implements Tool {
                 // Training the model with the given dataset
                 classifier.buildClassifier(dataset);
 
+                System.out.println("----------------------");
+                System.out.println(key);
+
                 // Printing the tree
                 System.out.println(classifier);
 
+                String file_name = new String("../input/dt_" + key.toString() + ".model");
+
+                SerializationHelper.write(file_name, classifier);
+                //saveModelParametersToCSV(classifier, "/Users/ashirm1999/Desktop/Large_Scale/project-classification-prediction-ensembles-in-memory-processing/input/model_parameters.csv");
+
+                
             } catch (Exception e) {
                 logger.error("Failed to train the model.", e);
                 throw new IOException("Failed to train the model.", e);
             }
 
+        }
+
+        private void saveModelParametersToCSV(J48 classifier, String filePath) throws IOException {
+            FileWriter writer = new FileWriter(filePath);
+            String[] options = classifier.getOptions();
+            writer.append("Option,Value\n");
+            for (String option : options) {
+                String[] parts = option.split(" ");
+                if (parts.length > 1) {
+                    String optionName = parts[0];
+                    String optionValue = parts[1];
+                    writer.append(optionName).append(",").append(optionValue).append("\n");
+                }
+            }
+            writer.flush();
+            writer.close();
         }
     }
 
@@ -152,6 +182,7 @@ public class EnsembleTraining extends Configured implements Tool {
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
         return job.waitForCompletion(true) ? 0 : 1;
     }
 
