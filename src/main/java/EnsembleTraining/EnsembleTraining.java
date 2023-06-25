@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Random;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -27,17 +28,17 @@ import weka.core.SerializationHelper;
 import weka.core.Utils;
 import java.io.FileWriter;
 import java.io.IOException;
+import org.apache.hadoop.fs.FileSystem;
 
 public class EnsembleTraining extends Configured implements Tool {
     private static final Logger logger = LogManager.getLogger(EnsembleTraining.class);
-
+    private static final String INTERMEDIATE_PATH = "intermediate_model_output";
 
     public static class TokenizerMapper extends Mapper<Object, Text, Text, Text> {
 
         @Override
         public void map(final Object key, final Text value, final Context context) throws java.io.IOException, InterruptedException {
             logger.info("In MAPPER");
-            
 
             // Defining the start and the end range for generating the random number
             int start_range = 0;
@@ -58,7 +59,7 @@ public class EnsembleTraining extends Configured implements Tool {
 
     public static class IntSumReducer extends Reducer<Text, Text, Text, Text> {
         private final static IntWritable one = new IntWritable(1);
-        private static final String INTERMEDIATE_PATH = "intermediate_model_output";
+
 
         @Override
         public void reduce(final Text key, final Iterable<Text> values, final Context context) throws java.io.IOException, InterruptedException {
@@ -134,7 +135,7 @@ public class EnsembleTraining extends Configured implements Tool {
                 // Printing the tree
                 System.out.println(classifier);
 
-                String file_name = new String("../input/dt_" + key.toString() + ".model");
+                String file_name = new String( INTERMEDIATE_PATH + "/dt_" + key.toString() + ".model");
 
                 SerializationHelper.write(file_name, classifier);
                 //saveModelParametersToCSV(classifier, "/Users/ashirm1999/Desktop/Large_Scale/project-classification-prediction-ensembles-in-memory-processing/input/model_parameters.csv");
@@ -181,9 +182,40 @@ public class EnsembleTraining extends Configured implements Tool {
         job.setOutputValueClass(Text.class);
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
-        return job.waitForCompletion(true) ? 0 : 1;
+        // Create the intermediate path directory in Amazon S3
+        Path intermediatePath = new Path(INTERMEDIATE_PATH);
+        FileOutputFormat.setOutputPath(job, intermediatePath);
+
+        // Set the output directory as a temporary directory
+        //FileOutputFormat.setOutputPath(job, new Path("temp_output"));
+
+        // Submit the job and wait for completion
+        boolean jobCompleted = job.waitForCompletion(true);
+
+        // After the job completion, move the output directory to the desired location in Amazon S3
+        if (jobCompleted) {
+            Configuration s3Conf = new Configuration();
+            FileSystem s3FileSystem = intermediatePath.getFileSystem(s3Conf);
+
+            // Create the desired directory in Amazon S3
+            Path s3OutputPath = new Path("s3://cs6240-team-ra/" + INTERMEDIATE_PATH);
+            s3FileSystem.mkdirs(s3OutputPath);
+
+            // Move the output files from the temporary directory to the desired location in Amazon S3
+            FileStatus[] outputFiles = s3FileSystem.listStatus(new Path("intermediate_model_output"));
+            for (FileStatus file : outputFiles) {
+                Path outputPath = new Path(s3OutputPath, file.getPath().getName());
+                s3FileSystem.rename(file.getPath(), outputPath);
+            }
+
+            // Delete the temporary directory
+            s3FileSystem.delete(new Path("intermediate_model_output"), true);
+
+            return 0;
+        } else {
+            return 1;
+        }
     }
 
     public static void main(final String[] args) {
