@@ -34,7 +34,17 @@ public class ModelTesting extends Configured implements Tool {
 
     public static class TokenizerMapper extends Mapper<Object, Text, Text, Text> {
 
-        @Override
+        public void setup(Context context) throws IOException, InterruptedException {
+            Configuration conf = new Configuration();
+            Path[] cacheFiles = DistributedCache.getLocalCacheFiles(conf);
+
+            for (Path cacheFile : cacheFiles) {
+                // Load the model from the .model file
+                Classifier classifier = loadModel(cacheFile.toString());
+            }
+
+
+            @Override
         public void map(final Object key, final Text value, final Context context) throws java.io.IOException, InterruptedException {
 
         }
@@ -68,6 +78,13 @@ public class ModelTesting extends Configured implements Tool {
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        // Setup cache file and file system for distributed cache.
+        job.addCacheFile(new Path(args[0] + "/intermediate_model_output").toUri());
+        job.getConfiguration().set("cache.fs", "s3://cs6240-team-ra/");
+
+        //do the below if you want to run locally.
+        //job.getConfiguration().set("cache.fs", "hdfs://localhost:9000/");
 
         return job.waitForCompletion(true) ? 0 : 1;
     }
