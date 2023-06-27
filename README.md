@@ -17,6 +17,7 @@ Installation
 These components are installed:
 - OpenJDK 11
 - Hadoop 3.3.5
+- Weka 3.9.5
 - Maven (Tested with version 3.6.3)
 - AWS CLI (Tested with version 1.22.34)
 
