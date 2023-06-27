@@ -71,4 +71,8 @@ All of the build & execution commands are organized in the Makefile.
 
 Files Description
 ---------
+1. TrainTest.java: This Java code performs a train-test split on a dataset stored in a CSV file. It reads the dataset from the file, shuffles the rows randomly, and divides them into a training set and a test set based on a specified ratio. The program then creates separate folders for the train and test datasets if they don't already exist. It saves the train and test datasets into separate CSV files within their respective folders. Finally, it outputs the sizes of the train and test sets.
 
+2. EnsembleTraining.java: This Java code implements ensemble training using the Hadoop MapReduce framework and the Weka machine learning library. It uses the train test split dataset and trains individual decision tree classifiers on each subset using the MapReduce. The trained models are serialized and saved into the intermediate output model folder so that it can be uploaded into the File Cache for Model Testing. It utilizes distributed computing to train the models in parallel, improving efficiency.
+
+3. ModelTesting.java:
