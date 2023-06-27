@@ -1,4 +1,7 @@
 # Ensemble Classification & Prediction for In-Memory Processing 
+-----------
+Ideation: Train an ensemble classification or prediction model consisting of individual models from an existing library designed for in-memory processing on a single machine. You can use such libraries for training and prediction of individual models, but you must code from scratch the parallel framework for ensemble training and prediction, and for efficient exploration of the best model parameters. Then use your ensemble model to make predictions and report its accuracy. You
+may apply this solution to a Kaggle competition.
 
 CS6240 Final Project
 Summer 2023
@@ -63,3 +66,8 @@ All of the build & execution commands are organized in the Makefile.
 	- `make upload-input-aws`		-- only before first execution
 	- `make aws`					-- check for successful execution with web interface (aws.amazon.com)
 	- `download-output-aws`		-- after successful execution & termination
+
+
+Files Description
+---------
+
