@@ -1,4 +1,5 @@
-Ensemble Classification & Prediction for In-Memory Processing 
+# Ensemble Classification & Prediction for In-Memory Processing 
+
 CS6240 Final Project
 Summer 2023
 
