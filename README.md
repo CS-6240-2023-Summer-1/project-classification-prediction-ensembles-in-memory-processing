@@ -1,6 +1,7 @@
 # Ensemble Classification & Prediction for In-Memory Processing 
 -----------
-Ideation: Train an ensemble classification or prediction model consisting of individual models from an existing library designed for in-memory processing on a single machine. You can use such libraries for training and prediction of individual models, but you must code from scratch the parallel framework for ensemble training and prediction, and for efficient exploration of the best model parameters. Then use your ensemble model to make predictions and report its accuracy. You
+# Ideation:
+Train an ensemble classification or prediction model consisting of individual models from an existing library designed for in-memory processing on a single machine. You can use such libraries for training and prediction of individual models, but you must code from scratch the parallel framework for ensemble training and prediction, and for efficient exploration of the best model parameters. Then use your ensemble model to make predictions and report its accuracy. You
 may apply this solution to a Kaggle competition.
 
 CS6240 Final Project
