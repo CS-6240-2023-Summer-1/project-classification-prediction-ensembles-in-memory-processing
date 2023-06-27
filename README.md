@@ -1,1 +1,1 @@
-# project-classification-prediction-ensembles-in-memory-processing
+# Ensemble Classification & Prediction for In-Memory Processing 
