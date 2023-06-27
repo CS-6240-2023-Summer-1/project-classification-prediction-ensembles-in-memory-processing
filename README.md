@@ -22,9 +22,8 @@ These components are installed:
 - AWS CLI (Tested with version 1.22.34)
 
 - Scala 2.12.17 (you can install this specific version with the Coursier CLI tool which also needs to be installed)
-- Spark 3.3.2 (without bundled Hadoop)
 
-After downloading the hadoop and spark installations, move them to an appropriate directory:
+After downloading the hadoop installations, move them to an appropriate directory:
 
 `mv hadoop-3.3.5 /usr/local/hadoop-3.3.5`
 
