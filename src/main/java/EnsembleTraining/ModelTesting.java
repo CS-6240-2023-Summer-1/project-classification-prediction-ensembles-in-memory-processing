@@ -26,9 +26,19 @@ import weka.classifiers.Classifier;
 import weka.classifiers.trees.J48;
 import weka.core.*;
 
+/**
+ * Parition + braoadcast algorithm.
+ * Map-only job
+ * Setup: reads models from cache
+ * Mapper: makes prediction for each test point
+ */
 public class ModelTesting extends Configured implements Tool {
     private static final Logger logger = LogManager.getLogger(ModelTesting.class);
+
+    //saves all the models read from the file cache
     private static List<Classifier> models = new ArrayList<>();
+
+    //global counters for computing precision and recall related parameters
     enum Accuracy {
         TRUE_POSITIVE_COUNT,
         TRUE_NEGATIVE_COUNT,
@@ -37,11 +47,14 @@ public class ModelTesting extends Configured implements Tool {
     }
     public static class TokenizerMapper extends Mapper<Object, Text, Text, Text> {
 
+        /**
+         * The set up reads the models from the file cache and saves them to an array.
+         * @param context
+         * @throws IOException
+         * @throws InterruptedException
+         */
         @Override
         public void setup(Context context) throws IOException, InterruptedException {
-            //Configuration conf = new Configuration();
-
-            //Path[] cacheFiles = DistributedCache.getLocalCacheFiles(conf);
 
             URI[] cacheFiles = context.getCacheFiles();
             String line;
@@ -63,7 +76,6 @@ public class ModelTesting extends Configured implements Tool {
                         // Read the file and load the model
                         J48 loadedModel = (J48) SerializationHelper.read(fs.open(filePath));
                         models.add(loadedModel);
-                        context.write(new Text("model_number"), new Text(filePath.toString()));
                     }
                 }
             } catch (Exception e) {
@@ -72,20 +84,32 @@ public class ModelTesting extends Configured implements Tool {
             }
         }
 
+        /**
+         * Each map call looks at one test record. For each test record, we loop through
+         * all the models are make a prediction using each model. Once that is done, we combine
+         * all the predicitons to get one prediction (since there are only 2 labels, we could the occurence
+         * of rach label and then pick the one that occured more times than the other). Once we have a prediciton
+         * for the test point, we then increment the FP, FN, TP or TN comparing the truw label and the predicted label.
+         *
+         * @param key is the offset of the test record
+         * @param value the test record
+         * @param context
+         * @throws IOException
+         * @throws InterruptedException
+         */
         @Override
         public void map(final Object key, final Text value, final Context context) throws IOException, InterruptedException {
-            // This method is called for each input record
-            // Each record represents a data point with features and a label
-            // The label is removed, and the models predict the label using the features
-            // The predictions are aggregated to determine the final prediction (mode/max)
 
+            //variables below keep track of the prediction from the ensembles
             int label_0 = 0;
             int label_1 = 0;
             String trueLabel = null;
 
+            //for each test record, loop through all records
             for (Classifier model : models) {
                 List<List<String>> allRecords = new ArrayList<>();
 
+                //put record in a list of listd
                 String[] record = String.valueOf(value).split(",");
                 List<String> recordList = new ArrayList<>(Arrays.asList(record));
                 allRecords.add(recordList);
@@ -134,12 +158,14 @@ public class ModelTesting extends Configured implements Tool {
 
                 // Increment appropriate counters based on the prediction value
                 if (predictedClassLabel.equals("0.0")) {
-                    label_0 += 1;
+                    label_0 += 1; //if label 0 is predicted
                 } else {
-                    label_1 += 1;
+                    label_1 += 1; //if label 1 is predicted
                 }
             }
 
+            //once we have predicted using all the models, we want a final prediction.
+            //so here, the final predicted value is determined by which variables has a higher value.
             // Get the final prediction
             String predictedValue = null;
             if (label_0 >= label_1) {
@@ -148,20 +174,23 @@ public class ModelTesting extends Configured implements Tool {
                 predictedValue = "1";
             }
 
-            // Write the true label and predicted value as output
-            //context.write(new Text(trueLabel), new Text(predictedValue));
-
-            // Update accuracy counters
+            // Update accuracy counters.
+            // Thiese are global counters. We will update once per test point.
+            // We do this so that we can compute the precision, recall and F1 score at the end.
             if (predictedValue.equals("1") && trueLabel.equals("1")) {
+                //incremeent true positive count
                 context.getCounter(Accuracy.TRUE_POSITIVE_COUNT).increment(1);
 
             } else if (predictedValue.equals("0") && trueLabel.equals("0")) {
+                //incremeent true negative count
                 context.getCounter(Accuracy.TRUE_NEGATIVE_COUNT).increment(1);
 
             } else if (predictedValue.equals("1") && trueLabel.equals("0")) {
+                //incremeent false positive count
                 context.getCounter(Accuracy.FALSE_POSITIVE_COUNT).increment(1);
 
             } else if (predictedValue.equals("0") && trueLabel.equals("1")) {
+                //incremeent false positive count
                 context.getCounter(Accuracy.FALSE_NEGATIVE_COUNT).increment(1);
             }
         }
