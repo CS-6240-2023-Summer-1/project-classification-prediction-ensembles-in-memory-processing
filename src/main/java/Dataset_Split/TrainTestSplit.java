@@ -23,6 +23,12 @@ class DatasetEntry {
     }
 }
 
+/**
+ * The purpose of this class is to do a train-test split. Given a dataset
+ * we do a 80-20 split here. You can change this bu specifying the parameters.
+ * The prpgram takes the inputs, does the splits and then saves the respective files.
+ */
+
 public class TrainTestSplit {
     public static void main(String[] args) {
         String csvFile = "/Users/ashirm1999/Desktop/Large_Scale/project-classification-prediction-ensembles-in-memory-processing/Final_Higgs_Data.csv"; // path of CSV file
