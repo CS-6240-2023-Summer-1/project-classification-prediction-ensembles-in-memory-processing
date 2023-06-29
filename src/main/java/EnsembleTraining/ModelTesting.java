@@ -174,6 +174,9 @@ public class ModelTesting extends Configured implements Tool {
                 predictedValue = "1";
             }
 
+            // Write the true label and predicted value as output
+            context.write(value, new Text("Predicted Label: " + predictedValue));
+
             // Update accuracy counters.
             // Thiese are global counters. We will update once per test point.
             // We do this so that we can compute the precision, recall and F1 score at the end.
